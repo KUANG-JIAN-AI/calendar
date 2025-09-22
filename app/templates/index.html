@@ -93,7 +93,7 @@
 
         .day {
             border: 1px solid #ddd;
-            min-height: 150px;
+            min-height: 130px;
             padding: 2px;
             font-size: 14px;
             background: #fff;
@@ -190,6 +190,27 @@
         .logout-btn {
             background: #e53935;
             color: #fff;
+        }
+
+        /* 图例居中 */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 10px auto 20px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
         }
 
         /* 登录弹窗 */
@@ -344,6 +365,19 @@
 
             <!-- 日历容器 -->
             <div id="calendarContainer"></div>
+
+            <!-- 图例 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#42a5f5"></div>未来计划
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#66bb6a"></div>当天计划
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#9e9e9e"></div>已过期计划
+                </div>
+            </div>
         </div>
 
         <!-- 右侧：用户信息栏 -->
@@ -351,7 +385,18 @@
             <h3>用户信息</h3>
             <p id="userStatus">未登录</p>
             <button class="login-btn" id="loginBtn">登录</button>
+            <button class="login-btn" id="registerBtn">注册</button>
             <button class="logout-btn" id="logoutBtn" style="display:none;">退出</button>
+        </div>
+    </div>
+
+    <!-- 注册弹窗 -->
+    <div class="login-modal" id="registerModal">
+        <div class="login-container">
+            <h2>注册</h2>
+            <input type="text" id="reg_username" placeholder="用户名">
+            <input type="password" id="reg_password" placeholder="密码">
+            <button onclick="register()">注册</button>
         </div>
     </div>
 
@@ -372,9 +417,9 @@
             <label>计划名称</label>
             <input type="text" id="planTitle">
             <label>开始时间</label>
-            <input type="datetime-local" id="planStart">
+            <input type="time" id="planStart">
             <label>结束时间</label>
-            <input type="datetime-local" id="planEnd">
+            <input type="time" id="planEnd">
             <button class="save-btn" onclick="savePlan()">保存</button>
             <button class="close-btn" onclick="closePlanModal()">取消</button>
         </div>
@@ -387,12 +432,14 @@
         const viewModeEl = document.getElementById("viewMode");
         const userStatus = document.getElementById("userStatus");
         const loginBtn = document.getElementById("loginBtn");
+        const registerBtn = document.getElementById("registerBtn");
         const logoutBtn = document.getElementById("logoutBtn");
 
         let currentDate = new Date();
         let events = [];
         let loggedIn = false;
         let username = "";
+        let password = "";
         let selectedDate = null;
 
         const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
@@ -436,27 +483,52 @@
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
             currentMonthEl.textContent = `${y} 年 ${m + 1} 月`;
+
             weekdaysEl.innerHTML = weekdays.map(d => `<div>${d}</div>`).join("");
+
             const firstDay = new Date(y, m, 1).getDay();
             const daysInMonth = new Date(y, m + 1, 0).getDate();
+
             calendarContainer.innerHTML = `<div class="calendar"></div>`;
             const cal = calendarContainer.firstChild;
-            for (let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
+
+            // 填充空白格
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement("div");
+                emptyDiv.className = "day empty";
+                cal.appendChild(emptyDiv);
+            }
+
+            // 填充实际日期
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const dayDiv = document.createElement("div");
                 dayDiv.className = "day";
                 dayDiv.innerHTML = `<div class="date-num">${d}</div>`;
-                dayDiv.onclick = () => { if (loggedIn) { selectedDate = dateStr; openPlanModal(); } };
+
+                // 点击日期弹窗添加计划
+                dayDiv.onclick = () => {
+                    loggedIn = true;
+                    if (loggedIn) {
+                        selectedDate = dateStr;
+                        openPlanModal();
+                    } else {
+                        alert("请先登录");
+                    }
+                };
+
+                // 如果已有计划显示
                 events.filter(e => e.date === dateStr).forEach(e => {
                     const ev = document.createElement("div");
                     ev.className = "event-bar";
                     ev.textContent = e.title;
                     dayDiv.appendChild(ev);
                 });
+
                 cal.appendChild(dayDiv);
             }
         }
+
 
         function renderWeek() {
             const y = currentDate.getFullYear();
@@ -498,20 +570,61 @@
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
+        // 注册逻辑
+        function register() {
+            username = document.getElementById("reg_username").value || "username";
+            password = document.getElementById("reg_password").value || "password";
+            fetch("/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username: username, password: password })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("registerModal").style.display = "none";
+                    alert(data.msg);
+                });
+        }
+
         // 登录逻辑
         function login() {
-            loggedIn = true;
-            username = document.getElementById("username").value || "用户";
-            document.getElementById("loginModal").style.display = "none";
-            userStatus.textContent = `已登录：${username}`;
-            loginBtn.style.display = "none";
-            logoutBtn.style.display = "inline-block";
+            username = document.getElementById("username").value || "username";
+            password = document.getElementById("password").value || "password";
+            fetch("/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username: username, password: password })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.msg);
+                    if (data.code != 200) {
+                        return false;
+                    }
+                    localStorage.setItem('id', data.data.id);
+                    localStorage.setItem('username', data.data.username);
+                    loggedIn = true;
+                    registerBtn.style.display = "none";
+                    loginBtn.style.display = "none";
+                    logoutBtn.style.display = "inline-block";
+                    userStatus.textContent = `已登录：${username}`;
+                    document.getElementById("loginModal").style.display = "none";
+                });
         }
+
+        registerBtn.onclick = () => document.getElementById("registerModal").style.display = "flex";
         loginBtn.onclick = () => document.getElementById("loginModal").style.display = "flex";
         logoutBtn.onclick = () => {
+            localStorage.removeItem('id');
+            localStorage.removeItem('username');
             loggedIn = false;
             username = "";
             userStatus.textContent = "未登录";
+            registerBtn.style.display = "inline-block";
             loginBtn.style.display = "inline-block";
             logoutBtn.style.display = "none";
         };
@@ -552,8 +665,10 @@
 
         // 点击空白处关闭弹窗
         window.onclick = function (event) {
+            const registerModal = document.getElementById("registerModal");
             const loginModal = document.getElementById("loginModal");
             const planModal = document.getElementById("planModal");
+            if (event.target === registerModal) registerModal.style.display = "none";
             if (event.target === loginModal) loginModal.style.display = "none";
             if (event.target === planModal) planModal.style.display = "none";
         };
