@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计划日历</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* 外层容器 */
+        .container {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 顶部菜单 */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1976d2;
+            color: #fff;
+            padding: 10px;
+            flex-wrap: nowrap;
+            border-radius: 6px;
+        }
+
+        .calendar-header .left-controls,
+        .calendar-header .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: nowrap;
+        }
+
+        .calendar-header button,
+        .calendar-header select {
+            background: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .calendar-header button:hover,
+        .calendar-header select:hover {
+            background: #e0e0e0;
+        }
+
+        .calendar-header h2 {
+            margin: 0 10px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* 星期标题 */
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            margin: 15px 10px;
+        }
+
+        /* 日历容器 */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin: 0 10px 20px;
+        }
+
+        .day {
+            border: 1px solid #ddd;
+            min-height: 150px;
+            padding: 2px;
+            font-size: 14px;
+            background: #fff;
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .day:hover {
+            background: #f0f8ff;
+        }
+
+        .day .date-num {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .event-bar {
+            background: #1976d2;
+            color: #fff;
+            padding: 2px 4px;
+            margin-top: 2px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 年视图 */
+        .year-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .month-preview {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .month-preview h3 {
+            text-align: center;
+            margin: 5px 0;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .month-preview .calendar {
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin: 0;
+        }
+
+        .month-preview .day {
+            min-height: 40px;
+            font-size: 10px;
+            padding: 1px;
+        }
+
+        /* 用户信息栏 */
+        .user-panel {
+            background: #fff;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .user-panel h3 {
+            margin-top: 0;
+        }
+
+        .user-panel p {
+            margin: 5px 0;
+        }
+
+        .user-panel button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login-btn {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        .logout-btn {
+            background: #e53935;
+            color: #fff;
+        }
+
+        /* 登录弹窗 */
+        .login-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 320px;
+        }
+
+        .login-container h2 {
+            margin-top: 0;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        /* 添加计划弹窗 */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+        }
+
+        .modal-content label {
+            display: block;
+            margin: 8px 0 4px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-content button {
+            padding: 8px 12px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .close-btn {
+            background: #ccc;
+            margin-left: 5px;
+        }
+
+        .save-btn {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        /* 手机端优化 */
+        @media (max-width: 768px) {
+            .calendar-header {
+                font-size: 12px;
+            }
+
+            .calendar-header h2 {
+                font-size: 14px;
+            }
+
+            .calendar-header button,
+            .calendar-header select {
+                font-size: 12px;
+                padding: 4px 6px;
+            }
+
+            .day {
+                min-height: 60px;
+                font-size: 12px;
+            }
+
+            .event-bar {
+                font-size: 10px;
+                padding: 1px 2px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 左侧：日历部分 -->
+        <div>
+            <!-- 顶部菜单 -->
+            <div class="calendar-header">
+                <div class="left-controls">
+                    <button id="prevBtn">◀</button>
+                    <h2 id="currentMonth"></h2>
+                    <button id="nextBtn">▶</button>
+                </div>
+                <div class="right-controls">
+                    <select id="viewMode">
+                        <option value="year">年</option>
+                        <option value="month" selected>月</option>
+                        <option value="week">周</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 星期标题（月/周视图用） -->
+            <div class="weekdays" id="weekdays"></div>
+
+            <!-- 日历容器 -->
+            <div id="calendarContainer"></div>
+        </div>
+
+        <!-- 右侧：用户信息栏 -->
+        <div class="user-panel" id="userPanel">
+            <h3>用户信息</h3>
+            <p id="userStatus">未登录</p>
+            <button class="login-btn" id="loginBtn">登录</button>
+            <button class="logout-btn" id="logoutBtn" style="display:none;">退出</button>
+        </div>
+    </div>
+
+    <!-- 登录弹窗 -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-container">
+            <h2>登录</h2>
+            <input type="text" id="username" placeholder="用户名">
+            <input type="password" id="password" placeholder="密码">
+            <button onclick="login()">登录</button>
+        </div>
+    </div>
+
+    <!-- 添加计划弹窗 -->
+    <div class="modal" id="planModal">
+        <div class="modal-content">
+            <h3>添加计划</h3>
+            <label>计划名称</label>
+            <input type="text" id="planTitle">
+            <label>开始时间</label>
+            <input type="datetime-local" id="planStart">
+            <label>结束时间</label>
+            <input type="datetime-local" id="planEnd">
+            <button class="save-btn" onclick="savePlan()">保存</button>
+            <button class="close-btn" onclick="closePlanModal()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        const calendarContainer = document.getElementById("calendarContainer");
+        const currentMonthEl = document.getElementById("currentMonth");
+        const weekdaysEl = document.getElementById("weekdays");
+        const viewModeEl = document.getElementById("viewMode");
+        const userStatus = document.getElementById("userStatus");
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        let currentDate = new Date();
+        let events = [];
+        let loggedIn = false;
+        let username = "";
+        let selectedDate = null;
+
+        const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+
+        function render() {
+            const mode = viewModeEl.value;
+            weekdaysEl.innerHTML = "";
+            if (mode === "year") renderYear();
+            else if (mode === "month") renderMonth();
+            else renderWeek();
+        }
+
+        function renderYear() {
+            currentMonthEl.textContent = `${currentDate.getFullYear()} 年`;
+            calendarContainer.innerHTML = `<div class="year-view"></div>`;
+            const yearView = calendarContainer.firstChild;
+            for (let m = 0; m < 12; m++) {
+                const monthDate = new Date(currentDate.getFullYear(), m, 1);
+                const monthDiv = document.createElement("div");
+                monthDiv.className = "month-preview";
+                monthDiv.innerHTML = `<h3>${m + 1} 月</h3><div class="weekdays">${weekdays.map(d => `<div>${d}</div>`).join("")}</div><div class="calendar"></div>`;
+                const cal = monthDiv.querySelector(".calendar");
+                const firstDay = new Date(currentDate.getFullYear(), m, 1).getDay();
+                const daysInMonth = new Date(currentDate.getFullYear(), m + 1, 0).getDate();
+                for (let i = 0; i < firstDay; i++) {
+                    cal.innerHTML += `<div class="day empty"></div>`;
+                }
+                for (let d = 1; d <= daysInMonth; d++) {
+                    cal.innerHTML += `<div class="day"><div class="date-num">${d}</div></div>`;
+                }
+                monthDiv.querySelector("h3").onclick = () => {
+                    currentDate = monthDate;
+                    viewModeEl.value = "month";
+                    render();
+                };
+                yearView.appendChild(monthDiv);
+            }
+        }
+
+        function renderMonth() {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            currentMonthEl.textContent = `${y} 年 ${m + 1} 月`;
+            weekdaysEl.innerHTML = weekdays.map(d => `<div>${d}</div>`).join("");
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            calendarContainer.innerHTML = `<div class="calendar"></div>`;
+            const cal = calendarContainer.firstChild;
+            for (let i = 0; i < firstDay; i++) cal.innerHTML += `<div class="day empty"></div>`;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayDiv = document.createElement("div");
+                dayDiv.className = "day";
+                dayDiv.innerHTML = `<div class="date-num">${d}</div>`;
+                dayDiv.onclick = () => { if (loggedIn) { selectedDate = dateStr; openPlanModal(); } };
+                events.filter(e => e.date === dateStr).forEach(e => {
+                    const ev = document.createElement("div");
+                    ev.className = "event-bar";
+                    ev.textContent = e.title;
+                    dayDiv.appendChild(ev);
+                });
+                cal.appendChild(dayDiv);
+            }
+        }
+
+        function renderWeek() {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const d = currentDate.getDate();
+            const dayOfWeek = currentDate.getDay();
+            const weekStart = new Date(y, m, d - dayOfWeek);
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const dt = new Date(weekStart);
+                dt.setDate(dt.getDate() + i);
+                weekDates.push(dt);
+            }
+            currentMonthEl.textContent = `${y} 年 第 ${getWeekNumber(currentDate)} 周`;
+            weekdaysEl.innerHTML = weekdays.map(d => `<div>${d}</div>`).join("");
+            calendarContainer.innerHTML = `<div class="calendar"></div>`;
+            const cal = calendarContainer.firstChild;
+            weekDates.forEach(dt => {
+                const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                const dayDiv = document.createElement("div");
+                dayDiv.className = "day";
+                dayDiv.innerHTML = `<div class="date-num">${dt.getDate()}</div>`;
+                dayDiv.onclick = () => { if (loggedIn) { selectedDate = dateStr; openPlanModal(); } };
+                events.filter(e => e.date === dateStr).forEach(e => {
+                    const ev = document.createElement("div");
+                    ev.className = "event-bar";
+                    ev.textContent = e.title;
+                    dayDiv.appendChild(ev);
+                });
+                cal.appendChild(dayDiv);
+            });
+        }
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        // 登录逻辑
+        function login() {
+            loggedIn = true;
+            username = document.getElementById("username").value || "用户";
+            document.getElementById("loginModal").style.display = "none";
+            userStatus.textContent = `已登录：${username}`;
+            loginBtn.style.display = "none";
+            logoutBtn.style.display = "inline-block";
+        }
+        loginBtn.onclick = () => document.getElementById("loginModal").style.display = "flex";
+        logoutBtn.onclick = () => {
+            loggedIn = false;
+            username = "";
+            userStatus.textContent = "未登录";
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+        };
+
+        // 添加计划
+        function openPlanModal() { document.getElementById("planModal").style.display = "flex"; }
+        function closePlanModal() { document.getElementById("planModal").style.display = "none"; }
+        function savePlan() {
+            const title = document.getElementById("planTitle").value.trim();
+            const start = document.getElementById("planStart").value;
+            const end = document.getElementById("planEnd").value;
+            if (!title || !start || !end) return alert("请填写完整计划");
+            events.push({ title, date: selectedDate, start, end });
+            closePlanModal();
+            render();
+        }
+
+        // 翻页按钮
+        document.getElementById("prevBtn").onclick = () => {
+            const mode = viewModeEl.value;
+            if (mode === "year") currentDate.setFullYear(currentDate.getFullYear() - 1);
+            else if (mode === "month") currentDate.setMonth(currentDate.getMonth() - 1);
+            else currentDate.setDate(currentDate.getDate() - 7);
+            render();
+        };
+        document.getElementById("nextBtn").onclick = () => {
+            const mode = viewModeEl.value;
+            if (mode === "year") currentDate.setFullYear(currentDate.getFullYear() + 1);
+            else if (mode === "month") currentDate.setMonth(currentDate.getMonth() + 1);
+            else currentDate.setDate(currentDate.getDate() + 7);
+            render();
+        };
+
+        viewModeEl.onchange = render;
+
+        // 初始化渲染
+        render();
+
+        // 点击空白处关闭弹窗
+        window.onclick = function (event) {
+            const loginModal = document.getElementById("loginModal");
+            const planModal = document.getElementById("planModal");
+            if (event.target === loginModal) loginModal.style.display = "none";
+            if (event.target === planModal) planModal.style.display = "none";
+        };
+    </script>
+</body>
+
+</html>
