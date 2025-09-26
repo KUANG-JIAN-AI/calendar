@@ -437,12 +437,19 @@
 
         let currentDate = new Date();
         let events = [];
-        let loggedIn = false;
-        let username = "";
-        let password = "";
+        let loggedIn = localStorage.getItem('loggedIn') || false;
+        let userid = localStorage.getItem('userid') || "";
+        let username = localStorage.getItem('username') || "";
         let selectedDate = null;
 
         const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+
+        if (loggedIn) {
+            registerBtn.style.display = "none";
+            loginBtn.style.display = "none";
+            logoutBtn.style.display = "inline-block";
+            userStatus.textContent = `已登录：${username}`;
+        }
 
         function render() {
             const mode = viewModeEl.value;
@@ -508,7 +515,7 @@
 
                 // 点击日期弹窗添加计划
                 dayDiv.onclick = () => {
-                    loggedIn = true;
+                    loggedIn = localStorage.getItem('loggedIn');
                     if (loggedIn) {
                         selectedDate = dateStr;
                         openPlanModal();
@@ -605,9 +612,9 @@
                     if (data.code != 200) {
                         return false;
                     }
-                    localStorage.setItem('id', data.data.id);
+                    localStorage.setItem('loggedIn', true);
+                    localStorage.setItem('userid', data.data.id);
                     localStorage.setItem('username', data.data.username);
-                    loggedIn = true;
                     registerBtn.style.display = "none";
                     loginBtn.style.display = "none";
                     logoutBtn.style.display = "inline-block";
@@ -619,7 +626,7 @@
         registerBtn.onclick = () => document.getElementById("registerModal").style.display = "flex";
         loginBtn.onclick = () => document.getElementById("loginModal").style.display = "flex";
         logoutBtn.onclick = () => {
-            localStorage.removeItem('id');
+            localStorage.removeItem('userid');
             localStorage.removeItem('username');
             loggedIn = false;
             username = "";
@@ -633,13 +640,25 @@
         function openPlanModal() { document.getElementById("planModal").style.display = "flex"; }
         function closePlanModal() { document.getElementById("planModal").style.display = "none"; }
         function savePlan() {
+            const userid = localStorage.getItem('userid');
             const title = document.getElementById("planTitle").value.trim();
             const start = document.getElementById("planStart").value;
             const end = document.getElementById("planEnd").value;
             if (!title || !start || !end) return alert("请填写完整计划");
-            events.push({ title, date: selectedDate, start, end });
-            closePlanModal();
-            render();
+            fetch("/plans", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ userid: userid, selectedDate: selectedDate, title: title, start: start, end: end })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    events.push({ title, date: selectedDate, start, end });
+                    closePlanModal();
+                    render();
+                    alert(data.msg);
+                });
         }
 
         // 翻页按钮

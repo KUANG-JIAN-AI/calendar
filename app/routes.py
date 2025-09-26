@@ -1,6 +1,7 @@
 import os
 from flask import Blueprint, jsonify, render_template
 
+from app.controllers.plan import create_plan
 from app.controllers.user import login, register
 
 main_bp = Blueprint("main", __name__)
@@ -15,3 +16,7 @@ def register_user():
 @main_bp.route("/login", methods=["POST"])
 def login_user():
     return jsonify(login())
+
+@main_bp.route("/plans", methods=["POST"])
+def add_plan():
+    return jsonify(create_plan())
