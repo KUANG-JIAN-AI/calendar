@@ -312,6 +312,18 @@
             font-size: 1em;
         }
 
+        .event-future {
+            background: #42a5f5;
+        }
+
+        .event-today {
+            background: #66bb6a;
+        }
+
+        .event-past {
+            background: #9e9e9e;
+        }
+
         /* 添加计划弹窗 */
         .modal {
             display: none;
@@ -563,6 +575,13 @@
         function renderMonth() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
+
+            const weektDate = new Date();
+            const year = weektDate.getFullYear();
+            const month = String(weektDate.getMonth() + 1).padStart(2, "0"); // 补0
+            const day = String(weektDate.getDate()).padStart(2, "0");       // 补0
+            const todayStr = `${year}-${month}-${day}`;
+
             currentMonthEl.textContent = `${y} 年 ${m + 1} 月`;
 
             weekdaysEl.innerHTML = weekdays.map(d => `<div>${d}</div>`).join("");
@@ -611,6 +630,9 @@
                         events.filter(e => e.plan_date == dateStr).forEach(e => {
                             const ev = document.createElement("div");
                             ev.className = "event-bar";
+                            if (dateStr == todayStr) ev.classList.add("event-today");
+                            else if (new Date(dateStr) < new Date(weektDate.getFullYear(), weektDate.getMonth(), weektDate.getDate())) ev.classList.add("event-past");
+                            else ev.classList.add("event-future");
                             ev.textContent = e.title;
                             dayDiv.appendChild(ev);
                         });
@@ -663,6 +685,14 @@
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth();
             const d = currentDate.getDate();
+            
+            const weektDate = new Date();
+            const year = weektDate.getFullYear();
+            const month = String(weektDate.getMonth() + 1).padStart(2, "0"); // 补0
+            const day = String(weektDate.getDate()).padStart(2, "0");       // 补0
+            const todayStr = `${year}-${month}-${day}`;
+
+
             const dayOfWeek = currentDate.getDay();
             const weekStart = new Date(y, m, d - dayOfWeek);
             const weekDates = [];
@@ -684,6 +714,9 @@
                 events.filter(e => e.plan_date === dateStr).forEach(e => {
                     const ev = document.createElement("div");
                     ev.className = "event-bar";
+                    if (dateStr == todayStr) ev.classList.add("event-today");
+                    else if (new Date(dateStr) < new Date(weektDate.getFullYear(), weektDate.getMonth(), weektDate.getDate())) ev.classList.add("event-past");
+                    else ev.classList.add("event-future");
                     ev.textContent = e.title;
                     dayDiv.appendChild(ev);
                 });
