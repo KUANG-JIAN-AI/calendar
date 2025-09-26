@@ -111,6 +111,19 @@
             font-size: 12px;
         }
 
+        .day a {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: #4a90e2;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+        }
+
         .event-bar {
             background: #1976d2;
             color: #fff;
@@ -158,7 +171,8 @@
         }
 
         /* 用户信息栏 */
-        .user-panel {
+        .user-panel,
+        .detail-panel {
             background: #fff;
             border-radius: 6px;
             padding: 15px;
@@ -166,7 +180,15 @@
             height: fit-content;
         }
 
+        .detail-panel {
+            margin-top: 15px;
+        }
+
         .user-panel h3 {
+            margin-top: 0;
+        }
+
+        .detail-panel h3 {
             margin-top: 0;
         }
 
@@ -181,6 +203,39 @@
             cursor: pointer;
             margin-top: 10px;
         }
+
+        .plan-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            /* 卡片间距 */
+        }
+
+        .plan-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .plan-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .plan-time {
+            font-size: 13px;
+            color: #666;
+            background: #f0f4ff;
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+
 
         .login-btn {
             background: #1976d2;
@@ -381,12 +436,29 @@
         </div>
 
         <!-- 右侧：用户信息栏 -->
-        <div class="user-panel" id="userPanel">
-            <h3>用户信息</h3>
-            <p id="userStatus">未登录</p>
-            <button class="login-btn" id="loginBtn">登录</button>
-            <button class="login-btn" id="registerBtn">注册</button>
-            <button class="logout-btn" id="logoutBtn" style="display:none;">退出</button>
+        <div>
+            <div class="user-panel" id="userPanel">
+                <h3>用户信息</h3>
+                <p id="userStatus">未登录</p>
+                <button class="login-btn" id="loginBtn">登录</button>
+                <button class="login-btn" id="registerBtn">注册</button>
+                <button class="logout-btn" id="logoutBtn" style="display:none;">退出</button>
+            </div>
+
+            <div class="detail-panel">
+                <h3 id="todayPlan">计划信息</h3>
+                <div class="plan-list" id="planList">
+                    <!-- <div class="plan-item">
+                        <div class="plan-title">学习111</div>
+                        <div class="plan-time">10:00 - 11:00</div>
+                    </div>
+                    <div class="plan-item">
+                        <div class="plan-title">午睡</div>
+                        <div class="plan-time">12:00 - 12:30</div>
+                    </div> -->
+                </div>
+
+            </div>
         </div>
     </div>
 
@@ -434,6 +506,8 @@
         const loginBtn = document.getElementById("loginBtn");
         const registerBtn = document.getElementById("registerBtn");
         const logoutBtn = document.getElementById("logoutBtn");
+        const planList = document.getElementById("planList");
+        const todayPlan = document.getElementById("todayPlan");
 
         let currentDate = new Date();
         let events = [];
@@ -499,43 +573,91 @@
             calendarContainer.innerHTML = `<div class="calendar"></div>`;
             const cal = calendarContainer.firstChild;
 
-            // 填充空白格
-            for (let i = 0; i < firstDay; i++) {
-                const emptyDiv = document.createElement("div");
-                emptyDiv.className = "day empty";
-                cal.appendChild(emptyDiv);
-            }
-
-            // 填充实际日期
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const dayDiv = document.createElement("div");
-                dayDiv.className = "day";
-                dayDiv.innerHTML = `<div class="date-num">${d}</div>`;
-
-                // 点击日期弹窗添加计划
-                dayDiv.onclick = () => {
-                    loggedIn = localStorage.getItem('loggedIn');
-                    if (loggedIn) {
-                        selectedDate = dateStr;
-                        openPlanModal();
-                    } else {
-                        alert("请先登录");
+            fetch("/month_plans?year=" + y + "&month=" + (m + 1), {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + userid
+                },
+            })
+                .then(res => res.json())
+                .then(data => {
+                    events = data.data;
+                    // 填充空白格
+                    for (let i = 0; i < firstDay; i++) {
+                        const emptyDiv = document.createElement("div");
+                        emptyDiv.className = "day empty";
+                        cal.appendChild(emptyDiv);
                     }
-                };
 
-                // 如果已有计划显示
-                events.filter(e => e.date === dateStr).forEach(e => {
-                    const ev = document.createElement("div");
-                    ev.className = "event-bar";
-                    ev.textContent = e.title;
-                    dayDiv.appendChild(ev);
+                    // 填充实际日期
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const dayDiv = document.createElement("div");
+                        dayDiv.className = "day";
+                        dayDiv.innerHTML = `<div class="date-num">${d}</div>`;
+
+                        // 点击日期弹窗添加计划
+                        dayDiv.onclick = () => {
+                            loggedIn = localStorage.getItem('loggedIn');
+                            if (loggedIn) {
+                                selectedDate = dateStr;
+                                openPlanModal();
+                            } else {
+                                alert("请先登录");
+                            }
+                        };
+
+                        // 如果已有计划显示
+                        events.filter(e => e.plan_date == dateStr).forEach(e => {
+                            const ev = document.createElement("div");
+                            ev.className = "event-bar";
+                            ev.textContent = e.title;
+                            dayDiv.appendChild(ev);
+                        });
+                        const aDiv = document.createElement("a");
+                        aDiv.textContent = "详情"
+                        aDiv.onclick = (e) => {
+                            e.preventDefault();    // 阻止跳转
+                            e.stopPropagation();   // 阻止触发父级点击事件
+                            todayPlan.innerText = dateStr;
+                            renderToday(dateStr);
+                        }
+                        dayDiv.appendChild(aDiv);
+                        cal.appendChild(dayDiv);
+                    }
                 });
 
-                cal.appendChild(dayDiv);
-            }
         }
 
+        function renderToday(dateStr = "") {
+            planList.innerHTML = "";
+            fetch("/today_plans?day=" + dateStr, {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + userid
+                },
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.data.length == 0) {
+                        const planDiv = document.createElement("div");
+                        planDiv.className = "plan-item";
+                        planDiv.innerHTML = `<div class="plan-title">暂无计划</div>
+                        <div class="plan-time">快去添加计划吧</div>`;
+                        planList.appendChild(planDiv);
+                        return false;
+                    }
+                    data.data.forEach(function (item, index) {
+                        const planDiv = document.createElement("div");
+                        planDiv.className = "plan-item";
+                        planDiv.innerHTML = `
+                            <div class="plan-title">${item.title}</div>
+                            <div class="plan-time">${item.start} - ${item.end}</div>
+                        `;
+                        planList.appendChild(planDiv);
+                    });
+                })
+        }
 
         function renderWeek() {
             const y = currentDate.getFullYear();
@@ -559,7 +681,7 @@
                 dayDiv.className = "day";
                 dayDiv.innerHTML = `<div class="date-num">${dt.getDate()}</div>`;
                 dayDiv.onclick = () => { if (loggedIn) { selectedDate = dateStr; openPlanModal(); } };
-                events.filter(e => e.date === dateStr).forEach(e => {
+                events.filter(e => e.plan_date === dateStr).forEach(e => {
                     const ev = document.createElement("div");
                     ev.className = "event-bar";
                     ev.textContent = e.title;
@@ -612,6 +734,7 @@
                     if (data.code != 200) {
                         return false;
                     }
+                    userid = data.data.id;
                     localStorage.setItem('loggedIn', true);
                     localStorage.setItem('userid', data.data.id);
                     localStorage.setItem('username', data.data.username);
@@ -620,6 +743,7 @@
                     logoutBtn.style.display = "inline-block";
                     userStatus.textContent = `已登录：${username}`;
                     document.getElementById("loginModal").style.display = "none";
+                    render();
                 });
         }
 
@@ -628,12 +752,14 @@
         logoutBtn.onclick = () => {
             localStorage.removeItem('userid');
             localStorage.removeItem('username');
-            loggedIn = false;
-            username = "";
+            localStorage.removeItem('loggedIn');
             userStatus.textContent = "未登录";
             registerBtn.style.display = "inline-block";
             loginBtn.style.display = "inline-block";
             logoutBtn.style.display = "none";
+            userid = 0;
+            planList.innerHTML = "";
+            render();
         };
 
         // 添加计划
@@ -654,9 +780,13 @@
             })
                 .then(res => res.json())
                 .then(data => {
-                    events.push({ title, date: selectedDate, start, end });
+                    events.push({ title, plan_date: selectedDate, start, end });
                     closePlanModal();
+                    renderToday(selectedDate);
                     render();
+                    document.getElementById("planTitle").value = "";
+                    document.getElementById("planStart").value = "";
+                    document.getElementById("planEnd").value = "";
                     alert(data.msg);
                 });
         }

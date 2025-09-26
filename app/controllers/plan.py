@@ -1,3 +1,5 @@
+import calendar
+import datetime
 from flask import current_app, request
 
 from app.models.plan import Plans, db
@@ -28,3 +30,37 @@ def create_plan():
         db.session.commit()
 
     return {'code': 200, 'msg': 'success'}
+
+def get_month_plans():
+    # 获取 userid
+    auth_header = request.headers.get("Authorization")
+    userid = None
+    if auth_header and auth_header.startswith("Bearer "):
+        userid = auth_header.split(" ")[1]
+    year = request.args.get("year",type=int)
+    month = request.args.get("month", type=int)
+    
+     # 第一天
+    first_day = datetime.date(year, month, 1)
+    # 获取当月天数
+    last_day_num = calendar.monthrange(year, month)[1]
+    # 最后一天
+    last_day = datetime.date(year, month, last_day_num)
+
+    with current_app.app_context():
+        plans = Plans.query.filter(Plans.userid == userid).filter(Plans.plan_date.between(first_day, last_day)).all()
+
+    return {'code': 200, 'msg': 'success', 'data': [p.to_dict() for p in plans]}
+
+def get_day_plans():
+    # 获取 userid
+    auth_header = request.headers.get("Authorization")
+    userid = None
+    if auth_header and auth_header.startswith("Bearer "):
+        userid = auth_header.split(" ")[1]
+
+    day = request.args.get("day")
+
+    with current_app.app_context():
+        plans = Plans.query.filter(Plans.userid == userid).filter(Plans.plan_date == day).all()
+    return {'code': 200, 'msg': 'success', 'data': [p.to_dict() for p in plans]}
