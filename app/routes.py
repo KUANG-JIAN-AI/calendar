@@ -1,4 +1,3 @@
-import os
 from flask import Blueprint, jsonify, render_template
 
 from app.controllers.plan import create_plan, get_day_plans, get_month_plans
