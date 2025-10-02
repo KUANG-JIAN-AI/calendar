@@ -89,3 +89,40 @@ if __name__ == "__main__":
 执行打包操作  
 pyinstaller --onefile --noconsole main.py
 
+创建模板  
+sudo nano /etc/systemd/system/calendar.service
+
+[Unit]  
+Description=Flask App - Calendar  
+After=network.target  
+
+[Service]  
+# 运行的用户/用户组  
+User=www-data  
+Group=www-data  
+
+# 项目路径  
+WorkingDirectory=/var/www/html/calendar  
+
+# Python 虚拟环境路径  
+Environment="PATH=/var/www/html/calendar/.venv/bin"  
+
+# 启动命令（根据端口修改） 
+ExecStart=/var/www/html/calendar/.venv/bin/python run.py  
+
+# 挂掉自动重启  
+Restart=always  
+
+[Install]
+WantedBy=multi-user.target  
+
+刷新 systemd 配置  
+sudo systemctl daemon-reload  
+
+
+启动服务  
+sudo systemctl start calendar  
+sudo systemctl enable calendar  
+
+查看运行状态  
+sudo systemctl status calendar  
