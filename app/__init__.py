@@ -10,7 +10,7 @@ def create_app():
     db.init_app(app)  # 初始化数据库
 
     # 注册蓝图
-    from .routes import main_bp
+    from .router import main_bp
     app.register_blueprint(main_bp)
 
     return app

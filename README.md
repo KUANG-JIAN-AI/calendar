@@ -58,6 +58,9 @@ db 无需重复创建，在 `__init__.py` 中创建后，只需要 from app impo
 无法添加默认时间  
 pip install tzdata
 
+安装 mysql 扩展
+pip install flask-sqlalchemy pymysql
+
 from datetime import datetime  
 from zoneinfo import ZoneInfo
 
